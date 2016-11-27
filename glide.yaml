@@ -9,9 +9,11 @@ import:
   subpackages:
   - 1.5/kubernetes
   - 1.5/rest
+  - 1.5/tools/clientcmd
 - package: github.com/jpillora/go-ogle-analytics
 - package: github.com/gogo/protobuf
   version: ^0.3.0
   subpackages:
   - proto
   - sortkeys
+- package: github.com/spf13/pflag

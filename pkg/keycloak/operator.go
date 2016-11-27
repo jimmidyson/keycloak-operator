@@ -16,7 +16,6 @@ package keycloak
 
 import (
 	"fmt"
-	"net/url"
 
 	"github.com/jimmidyson/keycloak-operator/pkg/k8sutil"
 
@@ -25,7 +24,6 @@ import (
 	apierrors "k8s.io/client-go/1.5/pkg/api/errors"
 	"k8s.io/client-go/1.5/pkg/api/v1"
 	extensionsobj "k8s.io/client-go/1.5/pkg/apis/extensions/v1beta1"
-	"k8s.io/client-go/1.5/rest"
 )
 
 const (
@@ -42,43 +40,40 @@ type Operator struct {
 	host string
 }
 
-// Config defines configuration parameters for the Operator.
-type Config struct {
-	Host        string
-	TLSInsecure bool
-	TLSConfig   rest.TLSClientConfig
-}
-
 // New creates a new controller.
-func New(c Config, logger log.Logger) (*Operator, error) {
-	cfg, err := newClusterConfig(c.Host, c.TLSInsecure, &c.TLSConfig)
-	if err != nil {
-		return nil, err
-	}
-	client, err := kubernetes.NewForConfig(cfg)
-	if err != nil {
-		return nil, err
-	}
-
+func New(client *kubernetes.Clientset, logger log.Logger) (*Operator, error) {
 	return &Operator{
 		kclient: client,
 		logger:  logger,
-		host:    cfg.Host,
 	}, nil
 }
 
 // Run the controller.
 func (c *Operator) Run(stopc <-chan struct{}) error {
-	v, err := c.kclient.Discovery().ServerVersion()
-	if err != nil {
-		return fmt.Errorf("communicating with server failed: %s", err)
-	}
-	c.logger.Log("msg", "connection established", "cluster-version", v)
+	errChan := make(chan error)
+	go func() {
+		v, err := c.kclient.Discovery().ServerVersion()
+		if err != nil {
+			errChan <- fmt.Errorf("communicating with server failed: %s", err)
+			return
+		}
+		c.logger.Log("msg", "connection established", "cluster-version", v)
 
-	if err := c.createTPRs(); err != nil {
-		return err
-	}
+		if err := c.createTPRs(); err != nil {
+			errChan <- err
+			return
+		}
+		errChan <- nil
+	}()
 
+	select {
+	case err := <-errChan:
+		if err != nil {
+			return err
+		}
+	case <-stopc:
+		return nil
+	}
 	<-stopc
 	return nil
 }
@@ -107,43 +102,21 @@ func (c *Operator) createTPRs() error {
 	tprClient := c.kclient.Extensions().ThirdPartyResources()
 
 	for _, tpr := range tprs {
-		if _, err := tprClient.Create(tpr); err != nil && !apierrors.IsAlreadyExists(err) {
-			return err
+		_, err := tprClient.Create(tpr)
+		if err != nil {
+			if !apierrors.IsAlreadyExists(err) {
+				return err
+			}
+			c.logger.Log("msg", "TPR already exists", "tpr", tpr.Name)
+		} else {
+			c.logger.Log("msg", "TPR created", "tpr", tpr.Name)
 		}
-		c.logger.Log("msg", "TPR created", "tpr", tpr.Name)
 	}
 
 	// We have to wait for the TPRs to be ready. Otherwise the initial watch may fail.
-	err := k8sutil.WaitForMonitoringTPRReady(c.kclient.CoreClient.Client, c.host, "keycloaks")
+	err := k8sutil.WaitForTPRReady(c.kclient.CoreClient.GetRESTClient(), "servers")
 	if err != nil {
 		return err
 	}
-	return k8sutil.WaitForMonitoringTPRReady(c.kclient.CoreClient.Client, c.host, "realms")
-}
-
-func newClusterConfig(host string, tlsInsecure bool, tlsConfig *rest.TLSClientConfig) (*rest.Config, error) {
-	var cfg *rest.Config
-	var err error
-
-	if len(host) == 0 {
-		if cfg, err = rest.InClusterConfig(); err != nil {
-			return nil, err
-		}
-	} else {
-		cfg = &rest.Config{
-			Host: host,
-		}
-		hostURL, err := url.Parse(host)
-		if err != nil {
-			return nil, fmt.Errorf("error parsing host url %s : %v", host, err)
-		}
-		if hostURL.Scheme == "https" {
-			cfg.TLSClientConfig = *tlsConfig
-			cfg.Insecure = tlsInsecure
-		}
-	}
-	cfg.QPS = 100
-	cfg.Burst = 100
-
-	return cfg, nil
+	return k8sutil.WaitForTPRReady(c.kclient.CoreClient.GetRESTClient(), "realms")
 }

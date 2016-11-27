@@ -1,5 +1,5 @@
-hash: ffe0fd37281581551f8a8840f61de0ec054240d306e3089d9633feeed16ed4da
-updated: 2016-11-26T23:14:18.98451107Z
+hash: 29cb9ed417c216ed084d4c5be2d67ab7fab912a94270d1155cf9d0049b2be14e
+updated: 2016-11-27T21:31:22.108454692Z
 imports:
 - name: github.com/blang/semver
   version: 31b736133b98f26d5e078ec9eb591666edfd091f
@@ -67,6 +67,10 @@ imports:
   - proto
 - name: github.com/google/gofuzz
   version: bbcb9da2d746f8bdbd6a936686a0a6067ada0ec5
+- name: github.com/howeyc/gopass
+  version: f5387c492211eb133053880d23dfae62aa14123d
+- name: github.com/imdario/mergo
+  version: 6633656539c1639d9d78127b7d47c622b5d7b6dc
 - name: github.com/jonboulle/clockwork
   version: 3f831b65b61282ba6bece21b91beea2edc4c887a
 - name: github.com/jpillora/go-ogle-analytics
@@ -93,6 +97,10 @@ imports:
   version: f4485b318aadd133842532f841dc205a8e339d74
   subpackages:
   - codec
+- name: golang.org/x/crypto
+  version: beef0f4390813b96e8e68fd78570396d0f4751fc
+  subpackages:
+  - ssh/terminal
 - name: golang.org/x/net
   version: 4876518f9e71663000c348837735820161a42df7
   subpackages:
@@ -107,6 +115,10 @@ imports:
   - internal
   - jws
   - jwt
+- name: golang.org/x/sys
+  version: 9c60d1c508f5134d1ca726b4641db998f2523357
+  subpackages:
+  - unix
 - name: golang.org/x/text
   version: b01949dc0793a9af5e4cb3fce4d42999e76e8ca1
   subpackages:
@@ -130,6 +142,8 @@ imports:
   subpackages:
   - compute/metadata
   - internal
+  - internal/opts
+  - storage
 - name: gopkg.in/inf.v0
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 - name: gopkg.in/yaml.v2
@@ -215,6 +229,7 @@ imports:
   - 1.5/pkg/util/errors
   - 1.5/pkg/util/flowcontrol
   - 1.5/pkg/util/framer
+  - 1.5/pkg/util/homedir
   - 1.5/pkg/util/integer
   - 1.5/pkg/util/intstr
   - 1.5/pkg/util/json
@@ -236,7 +251,11 @@ imports:
   - 1.5/plugin/pkg/client/auth/gcp
   - 1.5/plugin/pkg/client/auth/oidc
   - 1.5/rest
+  - 1.5/tools/auth
+  - 1.5/tools/clientcmd
   - 1.5/tools/clientcmd/api
+  - 1.5/tools/clientcmd/api/latest
+  - 1.5/tools/clientcmd/api/v1
   - 1.5/tools/metrics
   - 1.5/transport
 testImports: []

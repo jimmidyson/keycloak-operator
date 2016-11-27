@@ -15,7 +15,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"os/signal"
@@ -25,33 +24,47 @@ import (
 	"github.com/jimmidyson/keycloak-operator/pkg/keycloak"
 
 	"github.com/go-kit/kit/log"
+	flag "github.com/spf13/pflag"
+	"k8s.io/client-go/1.5/kubernetes"
+	"k8s.io/client-go/1.5/tools/clientcmd"
 )
 
 var (
-	cfg              keycloak.Config
 	analyticsEnabled bool
 )
 
-func init() {
-	flagset := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
-
-	flagset.StringVar(&cfg.Host, "apiserver", "", "API Server addr, e.g. ' - NOT RECOMMENDED FOR PRODUCTION - http://127.0.0.1:8080'. Omit parameter to run in on-cluster mode and utilize the service account token.")
-	flagset.StringVar(&cfg.TLSConfig.CertFile, "cert-file", "", " - NOT RECOMMENDED FOR PRODUCTION - Path to public TLS certificate file.")
-	flagset.StringVar(&cfg.TLSConfig.KeyFile, "key-file", "", "- NOT RECOMMENDED FOR PRODUCTION - Path to private TLS certificate file.")
-	flagset.StringVar(&cfg.TLSConfig.CAFile, "ca-file", "", "- NOT RECOMMENDED FOR PRODUCTION - Path to TLS CA file.")
-	flagset.BoolVar(&cfg.TLSInsecure, "tls-insecure", false, "- NOT RECOMMENDED FOR PRODUCTION - Don't verify API server's CA certificate.")
-	flagset.BoolVar(&analyticsEnabled, "analytics", true, "Send analytical event (Cluster Created/Deleted etc.) to Google Analytics")
-
-	flagset.Parse(os.Args[1:])
-}
-
 func Main() int {
 	logger := log.NewContext(log.NewLogfmtLogger(os.Stdout)).
-		With("ts", log.DefaultTimestampUTC, "caller", log.DefaultCaller)
+		With("ts", log.DefaultTimestampUTC, "caller", log.DefaultCaller).
+		With("operator", "keycloak")
 
-	ko, err := keycloak.New(cfg, logger.With("operator", "keycloak"))
+	flagset := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	flagset.StringVar(&loadingRules.ExplicitPath, "kubeconfig", "", "Path to the config file to use for CLI requests.")
+
+	overrides := &clientcmd.ConfigOverrides{}
+	overrideFlags := clientcmd.RecommendedConfigOverrideFlags("")
+	clientcmd.BindOverrideFlags(overrides, flagset, overrideFlags)
+
+	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
+
+	flagset.Parse(os.Args[1:])
+
+	cfg, err := kubeConfig.ClientConfig()
 	if err != nil {
-		fmt.Fprint(os.Stderr, err)
+		logger.Log("msg", "failed to create Kubernetes client config", "error", err)
+		return 1
+	}
+	client, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		logger.Log("msg", "failed to create Kubernetes client", "error", err)
+		return 1
+	}
+
+	ko, err := keycloak.New(client, logger)
+	if err != nil {
+		logger.Log("error", err)
 		return 1
 	}
 
@@ -71,11 +84,12 @@ func Main() int {
 	signal.Notify(term, os.Interrupt, syscall.SIGTERM)
 	select {
 	case <-term:
-		fmt.Fprint(os.Stdout, "Received SIGTERM, exiting gracefully...")
+		fmt.Fprintln(os.Stderr)
+		logger.Log("msg", "Received SIGTERM, exiting gracefully...")
 		close(stopc)
 		wg.Wait()
-	case <-errc:
-		fmt.Fprintf(os.Stderr, "Unhandled error received. Exiting...")
+	case err := <-errc:
+		logger.Log("msg", "Unexpected error received", "error", err)
 		close(stopc)
 		wg.Wait()
 		return 1
