@@ -3,10 +3,10 @@ build: check keycloak-operator
 REPO = jimmidyson/keycloak-operator
 TAG = latest
 
-keycloak-operator: $(shell find -name *.go)
+keycloak-operator: $(shell find . -type f -name '*.go')
 	go build -o keycloak-operator github.com/jimmidyson/keycloak-operator/cmd/operator
 
-keycloak-operator-linux-static: $(shell find -name *.go)
+keycloak-operator-linux-static: $(shell find . -type f -name '*.go')
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
 		go build -o keycloak-operator-linux-static \
 		-ldflags "-s" -a -installsuffix cgo \
@@ -14,7 +14,7 @@ keycloak-operator-linux-static: $(shell find -name *.go)
 
 check: .check_license
 
-.check_license: $(shell find ! -path '*/vendor/*' -name *.go)
+.check_license: $(shell find . -type f -name '*.go' ! -path './vendor/*')
 	./scripts/check_license.sh
 	touch .check_license
 
@@ -24,7 +24,10 @@ image: check keycloak-operator-linux-static
 e2e:
 	go test -v ./test/e2e/ --kubeconfig "$(HOME)/.kube/config" --operator-image=jimmidyson/keycloak-operator
 
+clean:
+	rm -f keycloak-operator keycloak-operator-linux-static .check_license
+
 clean-e2e:
 	kubectl delete namespace keycloak-operator-e2e-tests
 
-.PHONY: build check container e2e clean-e2e
+.PHONY: build check container e2e clean-e2e clean
