@@ -29,4 +29,5 @@ _testmain.go
 # external packages folder
 vendor/
 
-/keycloak-operator
+/keycloak-operator*
+.check_license
