@@ -27,8 +27,13 @@ import (
 )
 
 const (
-	tprRealm    = "realm.keycloak.org"
-	tprKeycloak = "server.keycloak.org"
+	TPRGroup      = "keycloak.org"
+	TPRVersion    = "v1alpha1"
+	TPRRealmKind  = "realms"
+	TPRServerKind = "servers"
+
+	tprRealm    = "realm." + TPRGroup
+	tprKeycloak = "server." + TPRGroup
 )
 
 // Operator manages lify cycle of Prometheus deployments and
@@ -71,6 +76,7 @@ func (c *Operator) Run(stopc <-chan struct{}) error {
 		if err != nil {
 			return err
 		}
+		c.logger.Log("msg", "TPR API endpoints ready")
 	case <-stopc:
 		return nil
 	}
@@ -85,7 +91,7 @@ func (c *Operator) createTPRs() error {
 				Name: tprRealm,
 			},
 			Versions: []extensionsobj.APIVersion{
-				{Name: "v1alpha1"},
+				{Name: TPRVersion},
 			},
 			Description: "Keycloak Realm",
 		},
@@ -94,7 +100,7 @@ func (c *Operator) createTPRs() error {
 				Name: tprKeycloak,
 			},
 			Versions: []extensionsobj.APIVersion{
-				{Name: "v1alpha1"},
+				{Name: TPRVersion},
 			},
 			Description: "Managed Keycloak server",
 		},
@@ -114,9 +120,9 @@ func (c *Operator) createTPRs() error {
 	}
 
 	// We have to wait for the TPRs to be ready. Otherwise the initial watch may fail.
-	err := k8sutil.WaitForTPRReady(c.kclient.CoreClient.GetRESTClient(), "servers")
+	err := k8sutil.WaitForTPRReady(c.kclient.CoreClient.GetRESTClient(), TPRGroup, TPRVersion, TPRServerKind)
 	if err != nil {
 		return err
 	}
-	return k8sutil.WaitForTPRReady(c.kclient.CoreClient.GetRESTClient(), "realms")
+	return k8sutil.WaitForTPRReady(c.kclient.CoreClient.GetRESTClient(), TPRGroup, TPRVersion, TPRRealmKind)
 }
