@@ -1,5 +1,5 @@
-hash: 29cb9ed417c216ed084d4c5be2d67ab7fab912a94270d1155cf9d0049b2be14e
-updated: 2016-11-27T21:31:22.108454692Z
+hash: 4209be32e5f3600f03dfe01b2bb6dfab4d3550fdc0f6ef2cfdceb175f6dcd04b
+updated: 2016-11-29T13:19:04.20373757Z
 imports:
 - name: github.com/blang/semver
   version: 31b736133b98f26d5e078ec9eb591666edfd091f
@@ -27,7 +27,7 @@ imports:
   subpackages:
   - spew
 - name: github.com/docker/distribution
-  version: 38fbd03266d86923d963566a6565c3fa01f496d8
+  version: bf27f260cd0c69c1bd206f8f3084870d28fc1195
   subpackages:
   - digest
   - reference
@@ -85,6 +85,8 @@ imports:
   - buffer
   - jlexer
   - jwriter
+- name: github.com/mitchellh/mapstructure
+  version: 740c764bc6149d3f1806231418adb9f52c11bcbf
 - name: github.com/pborman/uuid
   version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
 - name: github.com/PuerkitoBio/purell
@@ -252,6 +254,7 @@ imports:
   - 1.5/plugin/pkg/client/auth/oidc
   - 1.5/rest
   - 1.5/tools/auth
+  - 1.5/tools/cache
   - 1.5/tools/clientcmd
   - 1.5/tools/clientcmd/api
   - 1.5/tools/clientcmd/api/latest

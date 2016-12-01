@@ -17,3 +17,4 @@ import:
   - proto
   - sortkeys
 - package: github.com/spf13/pflag
+- package: github.com/mitchellh/mapstructure

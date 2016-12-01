@@ -25,7 +25,6 @@ import (
 
 	"github.com/go-kit/kit/log"
 	flag "github.com/spf13/pflag"
-	"k8s.io/client-go/1.5/kubernetes"
 	"k8s.io/client-go/1.5/tools/clientcmd"
 )
 
@@ -56,13 +55,8 @@ func Main() int {
 		logger.Log("msg", "failed to create Kubernetes client config", "error", err)
 		return 1
 	}
-	client, err := kubernetes.NewForConfig(cfg)
-	if err != nil {
-		logger.Log("msg", "failed to create Kubernetes client", "error", err)
-		return 1
-	}
 
-	ko, err := keycloak.New(client, logger)
+	ko, err := keycloak.New(cfg, logger)
 	if err != nil {
 		logger.Log("error", err)
 		return 1
